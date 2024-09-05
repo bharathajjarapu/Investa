@@ -1,0 +1,9 @@
+streamlit
+langchain==0.1.12
+langchain-community
+faiss-cpu
+groq
+python-dotenv
+yfinance
+duckduckgo_search
+reportlab
