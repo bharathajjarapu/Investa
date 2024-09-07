@@ -81,10 +81,10 @@ Based on our comprehensive analysis, we maintain a STRONG BUY recommendation for
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/investa-analyzr.git
+git clone https://github.com/bharathajjarapu/investa.git
 
 # Navigate to the project directory
-cd investa-analyzr
+cd investa
 
 # Install dependencies
 pip install -r requirements.txt
