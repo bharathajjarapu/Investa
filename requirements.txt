@@ -7,3 +7,7 @@ python-dotenv
 yfinance
 duckduckgo_search
 reportlab
+bcrypt
+pandas
+sqlite3
+plotly
