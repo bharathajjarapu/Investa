@@ -4,7 +4,7 @@
 
 Investa Analyzr is a financial analysis tool that harnesses the power of AI to deliver comprehensive, institutional-grade stock reports. Tailored for professional investors, financial analysts, and investment banks, it provides deep insights and data-driven recommendations.
 
-![Investa](https://github.com/user-attachments/assets/60718f19-be1a-4bc0-966e-3ecd5b9d9ab3)
+[Investa.webm](https://github.com/user-attachments/assets/0f32976d-8911-4bbc-88bd-cbc8ecafde6c)
 
 *Disclaimer : Investa Analyzr is a tool for informational purposes only. It does not provide investment advice. Always conduct thorough research and consult with a qualified financial advisor before making investment decisions.*
 
