@@ -9,5 +9,5 @@ duckduckgo_search
 reportlab
 bcrypt
 pandas
-sqlite3
 plotly
+SQLAlchemy
