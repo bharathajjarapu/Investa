@@ -1,6 +1,5 @@
 import os
 import io
-import atexit
 import tempfile
 from datetime import datetime
 import streamlit as st
@@ -13,9 +12,6 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_JUSTIFY
 import pandas as pd
-import bcrypt
-import sqlite3
-from functools import wraps
 import plotly.graph_objects as go
 
 load_dotenv()
@@ -31,63 +27,6 @@ st.set_page_config(
         'About': "This is a Streamlit app that generates investment reports for stocks using LLM and Yahoo Finance API."
     }
 )
-
-# Database setup
-conn = sqlite3.connect('users.db')
-c = conn.cursor()
-c.execute('''CREATE TABLE IF NOT EXISTS users
-             (username TEXT PRIMARY KEY, password TEXT, usage_count INTEGER, last_reset DATE)''')
-conn.commit()
-
-# User authentication functions
-def hash_password(password):
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
-def verify_password(stored_password, provided_password):
-    return bcrypt.checkpw(provided_password.encode('utf-8'), stored_password.encode('utf-8'))
-
-def create_user(username, password):
-    hashed_password = hash_password(password)
-    try:
-        c.execute("INSERT INTO users (username, password, usage_count, last_reset) VALUES (?, ?, ?, ?)",
-                  (username, hashed_password, 0, datetime.now().date()))
-        conn.commit()
-        return True
-    except sqlite3.IntegrityError:
-        return False
-
-def authenticate_user(username, password):
-    c.execute("SELECT password FROM users WHERE username = ?", (username,))
-    result = c.fetchone()
-    if result and verify_password(result[0], password):
-        return True
-    return False
-
-def reset_usage_if_new_day(username):
-    c.execute("SELECT last_reset FROM users WHERE username = ?", (username,))
-    last_reset = c.fetchone()[0]
-    if last_reset != datetime.now().date():
-        c.execute("UPDATE users SET usage_count = 0, last_reset = ? WHERE username = ?",
-                  (datetime.now().date(), username))
-        conn.commit()
-
-def increment_usage(username):
-    reset_usage_if_new_day(username)
-    c.execute("UPDATE users SET usage_count = usage_count + 1 WHERE username = ?", (username,))
-    conn.commit()
-
-def get_usage_count(username):
-    c.execute("SELECT usage_count FROM users WHERE username = ?", (username,))
-    return c.fetchone()[0]
-
-def login_required(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        if 'username' not in st.session_state:
-            st.warning("Please log in to access this feature.")
-            return None
-        return func(*args, **kwargs)
-    return wrapper
 
 # Caching for performance improvement
 @st.cache_data(ttl=3600)
@@ -196,30 +135,23 @@ def generate_pdf(content):
     buffer.seek(0)
     return buffer
 
-@login_required
-def main():
-    username = st.session_state['username']
-    usage_count = get_usage_count(username)
-    st.write(f"Reports generated today: {usage_count}/5")
-    if st.session_state['logged_in']:
-        st.markdown(
-            """
-            <style>
-            .main .block-container{
-                max-width: 100%;
-                padding-top: 4rem;
-                padding-right: 2rem;
-                padding-left: 2rem;
-                padding-bottom: 1rem;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True,
-        )
+def app():
+    st.title("Investa Analyzr :moneybag:")
 
-    if usage_count >= 5:
-        st.warning("You have reached your daily limit of 5 reports. Please try again tomorrow.")
-        return
+    st.markdown(
+        """
+        <style>
+        .main .block-container{
+            max-width: 100%;
+            padding-top: 4rem;
+            padding-right: 2rem;
+            padding-left: 2rem;
+            padding-bottom: 1rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
     ticker_input = st.text_input(
         ":money_with_wings: Enter a ticker to research",
@@ -234,16 +166,15 @@ def main():
     report_template = st.sidebar.selectbox(
         "Report Template",
         ["Standard", "Detailed", "Executive Summary"],
-        index = 2,
+        index=2,
     )
     time_period = st.sidebar.selectbox(
         "Historical Data Period",
         ["1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"],
-        index = 3,
+        index=3,
     )
 
     if generate_report_btn or download_report_btn:
-        increment_usage(username)
         st.session_state["topic"] = ticker_input
         report_topic = st.session_state["topic"]
 
@@ -393,44 +324,5 @@ def main():
             except Exception as e:
                 st.error(f"An error occurred while generating the PDF: {e}")
 
-def app():
-    st.title("Investa Analyzr :moneybag:")
-
-    if 'logged_in' not in st.session_state:
-        st.session_state['logged_in'] = False
-
-
-    if not st.session_state['logged_in']:
-        tab1, tab2 = st.tabs(["Login", "Sign Up"])
-
-        with tab1:
-            username = st.text_input("Username", key="login_username")
-            password = st.text_input("Password", type="password", key="login_password")
-            if st.button("Login", key="login_button"):
-                if authenticate_user(username, password):
-                    st.session_state['logged_in'] = True
-                    st.session_state['username'] = username
-                    st.rerun()
-                else:
-                    st.error("Invalid username or password")
-
-        with tab2:
-            new_username = st.text_input("New Username", key="signup_username")
-            new_password = st.text_input("New Password", type="password", key="signup_password")
-            if st.button("Sign Up", key="signup_button"):
-                if create_user(new_username, new_password):
-                    st.success("Account created successfully! Please log in.")
-                else:
-                    st.error("Username already exists")
-    else:
-        st.write(f"Welcome, {st.session_state['username']}!")
-        if st.button("Logout", key="logout_button"):
-            st.session_state['logged_in'] = False
-            del st.session_state['username']
-            st.rerun()
-        main()
-
 if __name__ == "__main__":
     app()
-
-atexit.register(conn.close)
